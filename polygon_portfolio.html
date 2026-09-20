@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POLYGON // Spatial Architect Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0b0c10;
+            --card-bg: rgba(31, 40, 51, 0.75);
+            --border-color: #45a29e;
+            --primary: #66fcf1;
+            --primary-glow: rgba(102, 252, 241, 0.4);
+            --accent: #ff007f;
+            --accent-glow: rgba(255, 0, 127, 0.4);
+            --text-main: #c5c6c7;
+            --text-bright: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0c10;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #45a29e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #66fcf1;
+        }
+
+        .neon-border {
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px rgba(69, 162, 158, 0.2);
+            transition: all 0.3s ease;
+        }
+        .neon-border:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .neon-text-primary {
+            color: var(--primary);
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .neon-text-accent {
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .avatar-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+        }
+
+        .poly-avatar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--accent), var(--primary));
+            clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%);
+            animation: pulsePoly 6s ease-in-out infinite alternate, rotatePoly 20s linear infinite;
+        }
+
+        @keyframes rotatePoly {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulsePoly {
+            0% { transform: scale(0.95) rotate(0deg); filter: drop-shadow(0 0 10px var(--accent)); }
+            100% { transform: scale(1.05) rotate(180deg); filter: drop-shadow(0 0 25px var(--primary)); }
+        }
+
+        .clip-corner {
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+        }
+
+        .clip-button {
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 99;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* Terminal styling */
+        .terminal-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--primary);
+            font-family: inherit;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen">
+
+    <canvas id="bg-canvas"></canvas>
+    <div class="scanline"></div>
+
+    <!-- Audio Controls Bar -->
+    <div class="fixed top-4 right-4 z-50 flex items-center gap-3 bg-slate-900/80 p-2 px-4 rounded-full border border-teal-500/40 backdrop-blur-md">
+        <button id="sound-toggle" onclick="toggleAudio()" class="text-xs text-teal-300 hover:text-cyan-400 transition flex items-center gap-2">
+            <i class="fas me-1 fa-volume-mute" id="sound-icon"></i>
+            <span id="sound-status">AUDIO: MUTED</span>
+        </button>
+        <div class="h-4 w-px bg-teal-500/40"></div>
+        <button onclick="playSFX('beep')" class="text-xs text-pink-400 hover:text-pink-300 transition">
+            <i class="fas fa-wave-square"></i> PING
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-6xl mx-auto px-4 py-8 relative z-10 space-y-16">
+
+        <header class="min-h-[85vh] flex flex-col justify-center items-center text-center relative pt-8">
+            <div class="avatar-container mb-8">
+                <div class="poly-avatar"></div>
+            </div>
+
+            <div class="inline-block bg-teal-950/60 border border-teal-500/40 px-4 py-1 rounded-full text-xs text-teal-300 mb-4 uppercase tracking-widest neon-text-primary">
+                Faction: Geometry Guild // Vector Division
+            </div>
+
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-wider text-white mb-2">
+                POLY<span class="neon-text-primary">GON</span>
+            </h1>
+
+            <p class="text-lg md:text-xl text-teal-400 max-w-2xl font-semibold mb-4">
+                [ CLASS: COMPUTATIONAL GEOMANCER / SPATIAL ARCHITECT ]
+            </p>
+
+            <blockquote class="italic text-slate-400 max-w-xl text-sm border-l-2 border-pink-500 pl-4 my-2">
+                "Complexity broken down into finite vertices. Every dimension is merely a set of matrices waiting for clean tessellation."
+            </blockquote>
+
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <a href="#lore" onclick="playSFX('click')" class="clip-button bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-3 transition duration-200 shadow-lg shadow-cyan-500/30">
+                    <i class="fas fa-book-open me-2"></i>INSPECT VERTICES
+                </a>
+                <a href="#lab" onclick="playSFX('click')" class="clip-button bg-pink-600 hover:bg-pink-500 text-white font-bold px-6 py-3 transition duration-200 shadow-lg shadow-pink-600/30">
+                    <i class="fas fa-shapes me-2"></i>SHAPE LAB
+                </a>
+                <a href="#terminal-section" onclick="playSFX('click')" class="clip-button bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-500/50 font-bold px-6 py-3 transition duration-200">
+                    <i class="fas fa-terminal me-2"></i>EXECUTE CLI
+                </a>
+            </div>
+        </header>
+
+        <section id="lore" class="scroll-mt-12">
+            <div class="bg-slate-900/80 border border-teal-500/30 p-6 md:p-8 rounded-lg clip-corner neon-border backdrop-blur-md">
+                <div class="flex items-center justify-between border-b border-teal-500/30 pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-microchip text-teal-400"></i> // CHARACTER CODEX & ORIGIN LORE
+                    </h2>
+                    <span class="text-xs text-pink-400 uppercase tracking-widest font-mono">[DIMENSION: 0x4F9]</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-4 text-slate-300 text-sm leading-relaxed">
+                        <p>
+                            Bounded within an N-dimensional Euclidean vector space, <strong class="text-teal-300">POLYGON</strong> originated as a sentient computational geometry engine designed to reconstruct broken digital dimensions into clean, tessellated structures.
+                        </p>
+                        <p>
+                            When corrupt algorithms fragments software realities, POLYGON projects geometric vectors, creating equilibrium through mathematical order and high-performance algorithms. Operating at the boundary where hardware assembly meets spatial computation, POLYGON renders order out of chaos.
+                        </p>
+                        <div class="bg-slate-950/60 p-4 border-l-4 border-cyan-400 rounded text-xs space-y-1 font-mono">
+                            <div class="text-teal-400">CORE_PROTOCOL_ACTIVE: 0x8891A</div>
+                            <div class="text-slate-400">PRIMARY_DIRECTIVE: Eliminate algorithmic overhead through polygon simplification.</div>
+                            <div class="text-slate-400">TACTICAL_STRENGTH: Ultra-low latency render matrix & spatial partitioning.</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/80 p-4 border border-teal-500/20 rounded flex flex-col justify-between space-y-4">
+                        <h3 class="text-xs font-bold text-pink-400 uppercase tracking-wider">// SYSTEM SPECS</h3>
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between border-b border-slate-800 pb-1">
+                                <span class="text-slate-400">ORIGIN:</span>
+                                <span class="text-white">Euclidean Mesh</span>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-800 pb-1">
+                                <span class="text-slate-400">FACTION:</span>
+                                <span class="text-teal-300">Geometry Guild</span>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-800 pb-1">
+                                <span class="text-slate-400">KERNEL:</span>
+                                <span class="text-white">Vector-OS v4.2</span>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-800 pb-1">
+                                <span class="text-slate-400">PRECISION:</span>
+                                <span class="text-pink-400">64-bit Floating Pt</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">AFFINITY:</span>
+                                <span class="text-teal-300">Tessellation</span>
+                            </div>
+                        </div>
+                        <div class="text-center pt-2">
+                            <span class="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-ping me-2"></span>
+                            <span class="text-[10px] text-emerald-400 font-mono">STATUS: OPTIMAL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="lab" class="scroll-mt-12">
+            <div class="bg-slate-900/80 border border-teal-500/30 p-6 md:p-8 rounded-lg clip-corner neon-border backdrop-blur-md">
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-teal-500/30 pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-draw-polygon text-pink-500"></i> // GEOMETRIC MORPHING LABORATORY
+                    </h2>
+                    <span class="text-xs text-teal-400 font-mono mt-2 md:mt-0">[INTERACTIVE MATH ENGINE]</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <!-- Control Panel -->
+                    <div class="lg:col-span-5 space-y-6 bg-slate-950/60 p-5 border border-slate-800 rounded-lg">
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-2">
+                                <span>NUMBER OF VERTICES (N):</span>
+                                <span id="sides-val" class="text-cyan-400 font-bold text-sm">5</span>
+                            </div>
+                            <input type="range" id="sides-slider" min="3" max="12" value="5" oninput="updateLabShape()" class="w-full accent-cyan-400 cursor-pointer">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-2">
+                                <span>ROTATION SPEED:</span>
+                                <span id="speed-val" class="text-pink-400 font-bold text-sm">1.0x</span>
+                            </div>
+                            <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1" oninput="updateLabShape()" class="w-full accent-pink-500 cursor-pointer">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-2">
+                                <span>COLOR HUE SHIFT:</span>
+                                <span id="hue-val" class="text-teal-300 font-bold text-sm">180°</span>
+                            </div>
+                            <input type="range" id="hue-slider" min="0" max="360" value="180" oninput="updateLabShape()" class="w-full accent-teal-400 cursor-pointer">
+                        </div>
+
+                        <!-- Mathematical Specs Readout -->
+                        <div class="bg-slate-900 p-4 rounded border border-teal-500/20 font-mono text-xs space-y-2">
+                            <div class="text-teal-400 font-bold border-b border-slate-800 pb-1">// REAL-TIME CALCULATIONS</div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Internal Angles Sum:</span>
+                                <span id="math-sum" class="text-white">540°</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Internal Diagonals:</span>
+                                <span id="math-diagonals" class="text-pink-400">5</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Single Interior Angle:</span>
+                                <span id="math-angle" class="text-cyan-300">108°</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shape Display Canvas -->
+                    <div class="lg:col-span-7 flex flex-col items-center justify-center bg-slate-950/80 p-6 rounded-lg border border-teal-500/30 relative overflow-hidden min-h-[320px]">
+                        <canvas id="lab-canvas" width="300" height="300" class="max-w-full h-auto cursor-crosshair"></canvas>
+                        <div class="absolute bottom-2 right-4 text-[10px] text-slate-500 font-mono">
+                            CLICK CANVAS TO PULSE SHAPE
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="stats-section" class="scroll-mt-12">
+            <div class="bg-slate-900/80 border border-teal-500/30 p-6 md:p-8 rounded-lg clip-corner neon-border backdrop-blur-md">
+                <div class="border-b border-teal-500/30 pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-sliders-h text-cyan-400"></i> // ATTRIBUTE MATRIX & TECHNICAL TREE
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Attributes Bar Matrix -->
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-teal-300 uppercase tracking-wider mb-2">// CORE ATTRIBUTES</h3>
+                        
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">SPATIAL LOGIC</span>
+                                <span class="text-cyan-400 font-bold">98 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div class="bg-gradient-to-r from-teal-500 to-cyan-400 h-full rounded-full" style="width: 98%"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">ALGORITHMIC PRECISION</span>
+                                <span class="text-cyan-400 font-bold">95 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div class="bg-gradient-to-r from-teal-500 to-cyan-400 h-full rounded-full" style="width: 95%"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">VECTOR PHYSICS</span>
+                                <span class="text-pink-400 font-bold">92 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div class="bg-gradient-to-r from-pink-600 to-pink-400 h-full rounded-full" style="width: 92%"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">CODE TESSELLATION</span>
+                                <span class="text-cyan-400 font-bold">90 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div class="bg-gradient-to-r from-teal-500 to-cyan-400 h-full rounded-full" style="width: 90%"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-300">THERMAL MANAGEMENT</span>
+                                <span class="text-pink-400 font-bold">85 / 100</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div class="bg-gradient-to-r from-pink-600 to-pink-400 h-full rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Skills Tree -->
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-bold text-pink-400 uppercase tracking-wider mb-2">// INVENTORY & ABILITIES</h3>
+                        
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="bg-slate-950 p-3 rounded border border-teal-500/20 hover:border-teal-400/60 transition">
+                                <div class="text-teal-300 font-bold mb-1"><i class="fas fa-code text-pink-400 me-1"></i> Web Graphics</div>
+                                <div class="text-slate-400">WebGL / HTML5 Canvas / Three.js / WebAudio API</div>
+                            </div>
+
+                            <div class="bg-slate-950 p-3 rounded border border-teal-500/20 hover:border-teal-400/60 transition">
+                                <div class="text-teal-300 font-bold mb-1"><i class="fas fa-cubes text-pink-400 me-1"></i> Frameworks</div>
+                                <div class="text-slate-400">React / Tailwind CSS / Node.js / Express</div>
+                            </div>
+
+                            <div class="bg-slate-950 p-3 rounded border border-teal-500/20 hover:border-teal-400/60 transition">
+                                <div class="text-teal-300 font-bold mb-1"><i class="fas fa-terminal text-pink-400 me-1"></i> Languages</div>
+                                <div class="text-slate-400">JavaScript (ES6+) / C++ / Python / GLSL</div>
+                            </div>
+
+                            <div class="bg-slate-950 p-3 rounded border border-teal-500/20 hover:border-teal-400/60 transition">
+                                <div class="text-teal-300 font-bold mb-1"><i class="fas fa-network-wired text-pink-400 me-1"></i> Systems</div>
+                                <div class="text-slate-400">Git / Linux CLI / System Architecture</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quests" class="scroll-mt-12">
+            <div class="bg-slate-900/80 border border-teal-500/30 p-6 md:p-8 rounded-lg clip-corner neon-border backdrop-blur-md">
+                <div class="flex items-center justify-between border-b border-teal-500/30 pb-4 mb-6">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <i class="fas fa-scroll text-teal-400"></i> // QUEST LOG / ARCHIVED CAMPAIGNS
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono">[3 COMPLETED]</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Quest 1 -->
+                    <div class="bg-slate-950/70 p-5 rounded-lg border border-teal-500/20 hover:border-teal-400/80 transition flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">QUEST #01</span>
+                                <span class="text-[10px] text-emerald-400 font-bold"><i class="fas fa-check me-1"></i>COMPLETED</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-2">Project TESSERACT</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Multi-dimensional vector renderer built to compute 4D hypercube rotations in real-time WebGL space.
+                            </p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-[10px] text-slate-500">
+                            <span>REWARD: +500 XP</span>
+                            <span class="text-teal-400 font-mono">WebGL / GLSL</span>
+                        </div>
+                    </div>
+
+                    <!-- Quest 2 -->
+                    <div class="bg-slate-950/70 p-5 rounded-lg border border-teal-500/20 hover:border-teal-400/80 transition flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] bg-teal-950 text-teal-300 px-2 py-0.5 rounded border border-teal-500/30">QUEST #02</span>
+                                <span class="text-[10px] text-emerald-400 font-bold"><i class="fas fa-check me-1"></i>COMPLETED</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-2">Hyper-Grid Engine</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Spatial pathfinding engine using A* and Delaunay Triangulation for ultra-fast spatial search queries.
+                            </p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-[10px] text-slate-500">
+                            <span>REWARD: +750 XP</span>
+                            <span class="text-pink-400 font-mono">Algorithms / C++</span>
+                        </div>
+                    </div>
+
+                    <!-- Quest 3 -->
+                    <div class="bg-slate-950/70 p-5 rounded-lg border border-pink-500/40 hover:border-pink-400 transition flex flex-col justify-between space-y-4 shadow-lg shadow-pink-950/30">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-500/30">QUEST #03</span>
+                                <span class="text-[10px] text-pink-400 font-bold animate-pulse"><i class="fas fa-star me-1"></i>SUBMISSION</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white mb-2">Blank Page Terminal</h3>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Specialized submission artifact built for "The Blank Page" competition at FET University of Lucknow.
+                            </p>
+                        </div>
+                        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-[10px] text-slate-500">
+                            <span>REWARD: GRAND PRIZE</span>
+                            <span class="text-cyan-300 font-mono">HTML5 / WebAudio</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="terminal-section" class="scroll-mt-12">
+            <div class="bg-slate-950 border border-teal-500/40 rounded-lg clip-corner shadow-2xl overflow-hidden font-mono text-xs">
+                <!-- Terminal Header -->
+                <div class="bg-slate-900 p-3 border-b border-teal-500/30 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                        <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                        <span class="text-slate-400 text-xs ms-2">polygon@geomancer-shell: ~</span>
+                    </div>
+                    <span class="text-[10px] text-teal-400">v2.0.4-STABLE</span>
+                </div>
+
+                <!-- Terminal Body -->
+                <div id="terminal-output" class="p-4 h-64 overflow-y-auto space-y-2 text-slate-300">
+                    <div class="text-teal-400 font-bold">System initialized. POLYGON CLI active.</div>
+                    <div class="text-slate-400">Type <span class="text-pink-400">'help'</span> for available commands or <span class="text-cyan-300">'stats'</span> to view specs.</div>
+                </div>
+
+                <!-- Terminal Input -->
+                <div class="p-3 bg-slate-900/60 border-t border-slate-800 flex items-center gap-2">
+                    <span class="text-pink-400 font-bold">&gt;</span>
+                    <input type="text" id="terminal-input" placeholder="Type a command..." class="terminal-input" onkeydown="handleTerminalCommand(event)">
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-8 border-t border-teal-500/20 text-xs text-slate-500 space-y-2">
+            <div class="text-teal-400 font-bold tracking-widest uppercase">
+                POLYGON // GEOMETRIC SYSTEMS • ALL FACETS SYNCHRONIZED
+            </div>
+            <div class="text-[10px] text-slate-600">
+                CHARACTER DESIGNATION: POLYGON // ALL SYSTEM VERTICES ALIGNED & COPYLEFT 2026
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let audioMuted = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            initAudio();
+            audioMuted = !audioMuted;
+            const icon = document.getElementById('sound-icon');
+            const status = document.getElementById('sound-status');
+            
+            if (audioMuted) {
+                icon.className = 'fas fa-volume-mute me-1';
+                status.innerText = 'AUDIO: MUTED';
+            } else {
+                icon.className = 'fas fa-volume-up me-1 text-cyan-400';
+                status.innerText = 'AUDIO: ACTIVE';
+                playSFX('beep');
+            }
+        }
+
+        function playSFX(type) {
+            if (audioMuted) return;
+            initAudio();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'beep') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1760, now + 0.05);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+        }
+
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const nodes = [];
+        const nodeCount = 55;
+
+        for (let i = 0; i < nodeCount; i++) {
+            nodes.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 1.2,
+                vy: (Math.random() - 0.5) * 1.2,
+                size: Math.random() * 2 + 1
+            });
+        }
+
+        function renderBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < nodes.length; i++) {
+                let n = nodes[i];
+                n.x += n.vx;
+                n.y += n.vy;
+
+                if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+                if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#66fcf1';
+                ctx.fill();
+
+                for (let j = i + 1; j < nodes.length; j++) {
+                    let n2 = nodes[j];
+                    let dist = Math.hypot(n2.x - n.x, n2.y - n.y);
+
+                    if (dist < 140) {
+                        ctx.beginPath();
+                        ctx.moveTo(n.x, n.y);
+                        ctx.lineTo(n2.x, n2.y);
+                        ctx.strokeStyle = `rgba(102, 252, 241, ${0.25 * (1 - dist / 140)})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(renderBg);
+        }
+        renderBg();
+
+        const labCanvas = document.getElementById('lab-canvas');
+        const labCtx = labCanvas.getContext('2d');
+        let labAngle = 0;
+        let pulseFactor = 0;
+
+        function updateLabShape() {
+            const sides = parseInt(document.getElementById('sides-slider').value);
+            const speed = parseFloat(document.getElementById('speed-slider').value);
+            const hue = parseInt(document.getElementById('hue-slider').value);
+
+            document.getElementById('sides-val').innerText = sides;
+            document.getElementById('speed-val').innerText = speed.toFixed(1) + 'x';
+            document.getElementById('hue-val').innerText = hue + '°';
+
+            // Math calculations
+            const sumAngles = (sides - 2) * 180;
+            const singleAngle = sumAngles / sides;
+            const diagonals = (sides * (sides - 3)) / 2;
+
+            document.getElementById('math-sum').innerText = sumAngles + '°';
+            document.getElementById('math-angle').innerText = singleAngle.toFixed(1) + '°';
+            document.getElementById('math-diagonals').innerText = diagonals;
+        }
+
+        labCanvas.addEventListener('click', () => {
+            pulseFactor = 15;
+            playSFX('beep');
+        });
+
+        function renderLab() {
+            labCtx.clearRect(0, 0, labCanvas.width, labCanvas.height);
+
+            const sides = parseInt(document.getElementById('sides-slider').value);
+            const speed = parseFloat(document.getElementById('speed-slider').value);
+            const hue = parseInt(document.getElementById('hue-slider').value);
+
+            labAngle += 0.01 * speed;
+            if (pulseFactor > 0) pulseFactor *= 0.92;
+
+            const centerX = labCanvas.width / 2;
+            const centerY = labCanvas.height / 2;
+            const radius = 90 + pulseFactor;
+
+            const points = [];
+            for (let i = 0; i < sides; i++) {
+                const a = labAngle + (i * 2 * Math.PI) / sides;
+                const x = centerX + radius * Math.cos(a);
+                const y = centerY + radius * Math.sin(a);
+                points.push({ x, y });
+            }
+
+            // Draw diagonals
+            labCtx.beginPath();
+            for (let i = 0; i < points.length; i++) {
+                for (let j = i + 1; j < points.length; j++) {
+                    labCtx.moveTo(points[i].x, points[i].y);
+                    labCtx.lineTo(points[j].x, points[j].y);
+                }
+            }
+            labCtx.strokeStyle = `hsla(${hue}, 80%, 60%, 0.25)`;
+            labCtx.lineWidth = 1;
+            labCtx.stroke();
+
+            // Draw outer polygon
+            labCtx.beginPath();
+            labCtx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                labCtx.lineTo(points[i].x, points[i].y);
+            }
+            labCtx.closePath();
+
+            labCtx.fillStyle = `hsla(${hue}, 80%, 50%, 0.15)`;
+            labCtx.fill();
+            labCtx.strokeStyle = `hsl(${hue}, 100%, 65%)`;
+            labCtx.lineWidth = 2.5;
+            labCtx.stroke();
+
+            // Draw vertex points
+            points.forEach(p => {
+                labCtx.beginPath();
+                labCtx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                labCtx.fillStyle = '#ffffff';
+                labCtx.fill();
+            });
+
+            requestAnimationFrame(renderLab);
+        }
+        updateLabShape();
+        renderLab();
+
+        function handleTerminalCommand(e) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('terminal-input');
+                const cmd = input.value.trim().toLowerCase();
+                const output = document.getElementById('terminal-output');
+
+                if (cmd === '') return;
+
+                playSFX('click');
+
+                // User command echo
+                const userLine = document.createElement('div');
+                userLine.className = 'text-pink-400';
+                userLine.innerHTML = `&gt; ${input.value}`;
+                output.appendChild(userLine);
+
+                // Command processing
+                const responseLine = document.createElement('div');
+                responseLine.className = 'text-slate-300';
+
+                switch (cmd) {
+                    case 'help':
+                        responseLine.innerHTML = `Available commands:<br>
+                        - <span class="text-cyan-300">stats</span>: Display character attribute metrics<br>
+                        - <span class="text-cyan-300">lore</span>: Display origin backstory<br>
+                        - <span class="text-cyan-300">quests</span>: List completed campaigns<br>
+                        - <span class="text-cyan-300">ping</span>: Send signal to geometry grid<br>
+                        - <span class="text-cyan-300">clear</span>: Clear terminal history`;
+                        break;
+                    case 'stats':
+                        responseLine.innerHTML = `<span class="text-teal-300">POLYGON STATS:</span> Logic: 98/100 | Precision: 95/100 | Physics: 92/100`;
+                        break;
+                    case 'lore':
+                        responseLine.innerHTML = `POLYGON is an N-dimensional geometric engine designed to tessellate chaotic digital dimensions.`;
+                        break;
+                    case 'quests':
+                        responseLine.innerHTML = `Completed: [Project TESSERACT], [Hyper-Grid Engine], [Blank Page Terminal]`;
+                        break;
+                    case 'ping':
+                        playSFX('beep');
+                        responseLine.innerHTML = `<span class="text-emerald-400">PONG! Grid response time: 0.12ms. All vertices synchronized.</span>`;
+                        break;
+                    case 'clear':
+                        output.innerHTML = '';
+                        input.value = '';
+                        return;
+                    default:
+                        responseLine.innerHTML = `<span class="text-red-400">Command not recognized: '${cmd}'. Type 'help' for command list.</span>`;
+                }
+
+                output.appendChild(responseLine);
+                input.value = '';
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
